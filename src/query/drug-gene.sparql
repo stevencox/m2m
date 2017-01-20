@@ -1,0 +1,11 @@
+prefix db_resource: <http://chem2bio2rdf.org/drugbank/resource/>
+prefix db_drug:     <http://chem2bio2rdf.org/drugbank/resource/drugbank_drug/>
+prefix pc_compound: <http://chem2bio2rdf.org/pubchem/resource/pubchem_compound/>
+prefix pc_resource: <http://chem2bio2rdf.org/pubchem/resource/>
+select ?drug ?gene ?name ?CID where {
+  ?interaction db_resource:gene  ?gene .
+  ?interaction db_resource:Name  ?name .
+  ?interaction db_resource:DBID  ?drug .
+  ?drug        db_resource:CID   ?CID .
+}
+order by ?drug ?gene
