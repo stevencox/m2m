@@ -24,6 +24,10 @@ blazegraph () {
     cd $BG_HOME
     java -server -Xms200g -Xmx200g -Djetty.port=8899 -Djetty.overrideWebXml=conf/readonly_cors.xml -Dbigdata.propertyFile=conf/blazegraph.properties -cp jars/blazegraph-jar-2.1.4.jar:jars/jetty-servlets-9.2.3.v20140905.jar com.bigdata.rdf.sail.webapp.StandaloneNanoSparqlServer
 }
+blazegraph_exec () {
+    cd $BG_HOME
+    exec java -server -Xms200g -Xmx200g -Djetty.port=8899 -Djetty.overrideWebXml=conf/readonly_cors.xml -Dbigdata.propertyFile=conf/blazegraph.properties -cp jars/blazegraph-jar-2.1.4.jar:jars/jetty-servlets-9.2.3.v20140905.jar com.bigdata.rdf.sail.webapp.StandaloneNanoSparqlServer
+}
 
 
 blazeg () {

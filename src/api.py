@@ -1,3 +1,4 @@
+from io import StringIO
 import os
 import sys
 from pymantic import sparql
@@ -18,7 +19,7 @@ def test ():
     result = triplestore.execute_query (query_file)    
     for binding in result['results']['bindings']:
         for var in result['head']['vars']:
-            print "{0} -> {1}".format (var, binding[var]['value'].encode('utf-8'))
+            print ("{0} -> {1}".format (var, binding[var]['value'].encode('utf-8')))
 
 def annotate_gene (gene, drug, gene_drug):
     if gene in gene_drug:

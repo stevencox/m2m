@@ -1,0 +1,26 @@
+#!/bin/bash
+
+source /projects/stars/m2m/dev/m2m/bin/setup.sh
+
+start() {
+    blazegraph_exec
+}
+
+stop() {
+    ps -ef | grep blazegraph | awk '{ print $2 }' | xargs sudo kill -9 
+}
+
+status () {
+    if [ "$(ps -ef | grep blazegraph | egrep -v grep | grep -c blazegraph )" -eq 0 ]; then
+	echo stopped
+    else
+	echo running
+    fi
+}
+
+case $1 in
+  start|stop|status) "$1" ;;
+esac
+
+
+exit 0
