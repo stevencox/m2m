@@ -114,7 +114,7 @@ class GeneDrug(object):
             similarity = similarity / hits if hits > 0 else similarity
         return similarity
 
-class RepurposeV2(object):
+class Repurpose(object):
     def __init__(self, triplestore_uri, root, word_embedding_path, threshold=0.4):
         self.triplestore = TripleStore (triplestore_uri)
         self.root = root
@@ -178,7 +178,7 @@ triplestore_uri = "http://stars-blazegraph.renci.org/bigdata/sparql"
 triplestore = TripleStore (triplestore_uri)
 #repurpose (root, triplestore, word_embedding_path)
 
-repurpose = RepurposeV2 (triplestore_uri, root, word_embedding_path)
+repurpose = Repurpose (triplestore_uri, root, word_embedding_path)
 repurpose.run ()
 
 
