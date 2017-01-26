@@ -1,0 +1,16 @@
+PREFIX db_resource: <http://chem2bio2rdf.org/drugbank/resource/>
+PREFIX db_drug:     <http://chem2bio2rdf.org/drugbank/resource/drugbank_drug/>
+PREFIX pc_compound: <http://chem2bio2rdf.org/pubchem/resource/pubchem_compound/>
+PREFIX pc_resource: <http://chem2bio2rdf.org/pubchem/resource/>
+PREFIX dcdb: <http://chem2bio2rdf.org/dcdb/resource/>
+
+SELECT DISTINCT ?indication ?drug ?gene ?CID ?name 
+WHERE {
+  ?interaction db_resource:gene  ?gene .
+  ?interaction db_resource:Name  ?name .
+  ?interaction db_resource:DBID  ?drug .
+  ?drug        db_resource:CID   ?CID .
+  ?component   dcdb:DRUGBANK_ID  ?drug . 
+  ?component   dcdb:INDICATION   ?indication .
+}
+ORDER BY ASC(?indication) ?drug
