@@ -1,6 +1,8 @@
+import json
 from io import StringIO
 import os
 import sys
+from collections import defaultdict
 from pymantic import sparql
 from gensim.models import word2vec
 
@@ -63,44 +65,6 @@ def repurpose (root, triplestore, word_embedding_path, threshold=0.8):
             visits[key_1] = 1
             visits[key_2] = 1
 
-
-from collections import defaultdict
-
-class GeneDrug(object):
-
-    def __init__(self, threshold=0.4):
-        self.gene_drug = defaultdict(list)
-        self.drug_gene = defaultdict(list)
-        self.threshold = threshold
-
-    def add (gene, drug):
-        self.gene_drug[gene].append (drug)
-        self.drug_gene[drug].append (gene)
-        '''
-        if gene in self.gene_drug:
-            drugs = self.gene_drug[gene]
-            drugs.append (drug)
-        else:
-            self.gene_drug[gene] = [ drug ]
-        '''
-    def get_target_similarity (self, L_drug, R_drug, model):
-        similarity = 0
-        if L_drug in self.drug_gene and R_drug in self.drug_gene:
-            L_genes = self.drug_gene[L_drug]
-            R_genes = self.drug_gene[R_drug]
-            visits = {}
-            for L in L_genes:
-                for R in R_genes:
-                    if L in model.vocab and R in model.vocab:
-                        key_1 = "{0}.{1}".format (L, R)
-                        key_2 = "{0}.{1}".format (R, L)
-                        if key_1 not in visits and key_2 not in visits:
-                            similarity = similarity + model.similarity (L, R)
-                            visits[key_1] = 1
-                            visits[key_2] = 1
-            similarity = similarity / len(visits) if len(visits) > 0 else similarity
-        return similarity
-
 def calculate_applicability (drugs_a, drugs_b, model):
     result = 0
     similarity = 0
@@ -121,49 +85,80 @@ def calculate_applicability (drugs_a, drugs_b, model):
             similarity_map [drug_a] = similarity
     return result, similarity
 
-class RepurposeV2(object):
+class GeneDrug(object):
+    def __init__(self, threshold=0.4):
+        self.gene_drug = defaultdict(list)
+        self.drug_gene = defaultdict(list)
+        self.threshold = threshold
+    def add (self, gene, drug):
+        self.gene_drug[gene].append (drug)
+        self.drug_gene[drug].append (gene)
+    def get_target_similarity (self, L_drug, R_drug, model):
+        similarity = 0
+        if L_drug in self.drug_gene and R_drug in self.drug_gene:
+            visits = {}
+            hits = 0
+            for L in self.drug_gene[L_drug]:
+                for R in self.drug_gene[R_drug]:
+                    if L in model.vocab and R in model.vocab:
+                        key_1 = "{0}.{1}".format (L, R)
+                        key_2 = "{0}.{1}".format (R, L)
+                        if key_1 not in visits and key_2 not in visits:
+                            gene_similarity = model.similarity (L, R)
+                            if gene_similarity > self.threshold:
+                                similarity = similarity + gene_similarity
+                                hits = hits + 1
+                                print ("    Lg: {0} Rg: {1} sim: {2}".format (L, R, gene_similarity))
+                            visits[key_1] = 1
+                            visits[key_2] = 1
+            similarity = similarity / hits if hits > 0 else similarity
+        return similarity
 
+class RepurposeV2(object):
     def __init__(self, triplestore_uri, root, word_embedding_path, threshold=0.4):
         self.triplestore = TripleStore (triplestore_uri)
         self.root = root
         self.word_embedding_path = word_embedding_path
         self.threshold = threshold
-
     def run (self):
         query_file = os.path.join (self.root, "src", "query", "drug-indication.sparql")
         result = triplestore.execute_query (query_file)
-        indications = {}
+        indications = defaultdict(list)
         gene_drug = GeneDrug ()
         for binding in result['results']['bindings']:
             drug = binding['name']['value'].rsplit('/', 1)[-1].lower ()
             indication = binding['indication']['value'].rsplit('/', 1)[-1].lower ()
             gene = binding['gene']['value'].rsplit('/', 1)[-1].lower ()
-            if not drug in indications:
-                indications[drug] = [ indication ] 
-            else:
-                if not indication in indications[drug]:
-                    indications[drug].append(indication)
+            indications[drug].append(indication)
             gene_drug.add (gene, drug)
-
         print ("loading word embedding model: {0}".format (word_embedding_path))
         model = word2vec.Word2Vec.load (word_embedding_path)
-        novel_indications = {}
-        for ref_drug in indications:
-            for other_drug in indications:
-                if ref_drug not in model.vocab or other_drug not in model.vocab:
-                    continue
-                similarity = model.similarity (ref_drug, other_drug)
-                if similarity > self.threshold:
-                    ref_indications = indications[ref_drug]
-                    other_indications = indications[other_drug]
-                    for indication in other_indications:
-                        if indication not in ref_indications:
-                            if indication in novel_indications:
-                                if not other_drug in novel_indications[indication]:
-                                    novel_indications[indication].append (other_drug)
-                            else:
-                                novel_indications[indication] = [ other_drug ]
+        novel_indications = defaultdict(list)
 
+        '''
+        Given di and cj (assuming di does not treat cj)
+           - find all drugs dk that treat cj
+              - ni=(number of dk such that semantic similarity of di-dk > 0.4)
+              - Sij = ni/(number of dk)
+        ref_drug=dk, other_drug=di
+        '''
+        
+        ''' all dk treating some set of cj '''
+        for ref_drug in indications: 
+            for other_drug in indications:
+                if ref_drug != other_drug and ref_drug in model.vocab and other_drug in model.vocab:
+                    ''' determine whether two drugs are semantically similar. '''
+                    similarity = model.similarity (ref_drug, other_drug)
+                    if similarity > self.threshold:
+                        ref_indications = indications[ref_drug]
+                        other_indications = indications[other_drug]
+                        for indication in other_indications:
+                            if indication not in ref_indications:
+                                ''' di is not known to treat this cj, which dk is known to treat. di!->cj && dk->cj '''
+                                ''' now test the semantic similarity of their gene targets. '''
+                                gene_profile_similarity = gene_drug.get_target_similarity (ref_drug, other_drug, model)
+                                if gene_profile_similarity > 0:
+                                    novel_indications[indication].append ( ( other_drug, ref_drug, gene_profile_similarity ) )
         for indication in novel_indications:
             ni = len (novel_indications[indication])
             num_dk = 0
@@ -171,10 +166,11 @@ class RepurposeV2(object):
                 if indication in indications[drug]:
                     num_dk = num_dk + 1
             Sij = ni / num_dk
-            print ("indication => {0}: ni={1} num_dk={2} Sij={3} alt:{4}".format (indication, ni, num_dk, Sij, novel_indications[indication]))
-
-
-
+            novel = novel_indications[indication]
+            print ("ind={0}, ni={1}, num_dk={2}, Sij={3}, alt:{4}".format (indication, ni, num_dk, Sij, len(novel)))
+            candidates = sorted(novel, key=lambda candidate: -candidate[2])
+            for n in candidates:
+                print ("   cand={0}, ref={1}, genesim={2}".format (n[0], n[1], n[2]))
 
 word_embedding_path = "/projects/stars/var/chemotext/w2v/gensim/cumulative/pmc-2016.w2v"
 root = "/projects/stars/m2m/dev/m2m"
