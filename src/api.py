@@ -83,12 +83,48 @@ def calculate_applicability (drugs_a, drugs_b, model):
             similarity_map [drug_a] = similarity
     return result, similarity
 
+class RepurposeV2(object):
+    def __init__(self, triplestore_uri, root, word_embedding_path, threshold=0.4):
+        self.triplestore = TripleStore (triplestore_uri)
+        self.root = root
+        self.word_embedding_path = word_embedding_path
+        self.threshold = threshold
+    def run (self):
+        query_file = os.path.join (self.root, "src", "query", "drug-indication.sparql")
+        result = triplestore.execute_query (query_file)
+        indications = {}
+        for binding in result['results']['bindings']:
+            drug = binding['name']['value'].rsplit('/', 1)[-1].lower ()
+            indication = binding['indication']['value'].rsplit('/', 1)[-1].lower ()
+            if not drug in indications:
+                indications[drug] = [ indication ] 
+            else:
+                if not indication in indications[drug]:
+                    indications[drug].append(indication)
+
+        print ("loading word embedding model: {0}".format (word_embedding_path))
+        model = word2vec.Word2Vec.load (word_embedding_path)
+        for ref_drug in indications:
+            for other_drug in indications:
+                if ref_drug not in model.vocab or other_drug not in model.vocab:
+                    continue
+                similarity = model.similarity (ref_drug, other_drug)
+                if similarity > self.threshold:
+                    ref_indications = indications[ref_drug]
+                    other_indications = indications[other_drug]
+                    for indication in other_indications:
+                        if indication not in ref_indications:
+                            print ("drug {0} is similar to drug {1} and may treat {2}".format (other_drug, ref_drug, indication))
+
 
 
 word_embedding_path = "/projects/stars/var/chemotext/w2v/gensim/cumulative/pmc-2016.w2v"
 root = "/projects/stars/m2m/dev/m2m"
-hostname = "http://stars-blazegraph.renci.org/bigdata/sparql"
-triplestore = TripleStore (hostname)
-repurpose (root, triplestore, word_embedding_path)
+triplestore_uri = "http://stars-blazegraph.renci.org/bigdata/sparql"
+triplestore = TripleStore (triplestore_uri)
+#repurpose (root, triplestore, word_embedding_path)
+
+repurpose = RepurposeV2 (triplestore_uri, root, word_embedding_path)
+repurpose.run ()
 
 
