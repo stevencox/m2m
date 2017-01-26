@@ -69,7 +69,16 @@ blazeg () {
 	fix () {
 	    for f in $C2B2R_DATA/*.n3; do
 		echo $f
-		cat $f | sed -e "s/HIV-1 PROTEASE/HIV-1_PROTEASE/g" -e "s/ACTVA 6/ACTVA_6/g" -e "s/GRESAG 4.1/GRESAG_4.1/g" -e "s/CSR 1.2/CSR_1.2/g" > $f.new
+		cat $f | sed \
+		    -e "s/HIV-1 PROTEASE/HIV-1_PROTEASE/g" \
+		    -e "s/ACTVA 6/ACTVA_6/g" \
+		    -e "s/GRESAG 4.1/GRESAG_4.1/g" \
+		    -e "s/CSR 1.2/CSR_1.2/g" \
+		    -e "s/ >/>/g" \
+		    -e "s,pubchem/resource/drugbank_drug,drugbank/resource/drugbank_drug,g" \
+		    -e "s/Not Available/Not_available/g" \
+		    -e "s/Not available/Not_available/g" \
+		    > $f.new
 		mv $f.new $f
 	    done
 	}
