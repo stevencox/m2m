@@ -2,7 +2,8 @@ export ROOT=/projects/stars
 export STACK=$ROOT/stack
 export PROJECT=$ROOT/m2m
 export DEV=$PROJECT/dev
-export BG_HOME=$DEV/go-graphstore
+#export BG_HOME=$DEV/go-graphstore
+export BG_HOME=/mnt/sdh1/dev/go-graphstore
 
 export DATA_ROOT=$PROJECT/var
 export MONARCH_DATA=$DATA_ROOT/monarch
@@ -13,6 +14,10 @@ export PATH=$PATH:$DEV/owltools
 export JAVA_HOME=$STACK/jdk/jdk1.8.0_92
 export PATH=$JAVA_HOME/bin:$PATH
 
+export BGVERSION=2.1.4
+export BGJAR="jars/blazegraph-jar-$BGVERSION.jar"
+export BG="java -server -XX:+UseG1GC -Xmx200g -Xms200g -cp $BGJAR com.bigdata.rdf.store.DataLoader"
+export DEFAULT_GRAPH=http://m2m/
 
 configure_m2m () {
     cd $DEV
@@ -25,20 +30,27 @@ blazegraph () {
     java -server -Xms200g -Xmx200g -Djetty.port=8899 -Djetty.overrideWebXml=conf/readonly_cors.xml -Dbigdata.propertyFile=conf/blazegraph.properties -cp jars/blazegraph-jar-2.1.4.jar:jars/jetty-servlets-9.2.3.v20140905.jar com.bigdata.rdf.sail.webapp.StandaloneNanoSparqlServer
 }
 blazegraph_exec () {
+    set_ssd 
     cd $BG_HOME
     exec java -server -Xms200g -Xmx200g -Djetty.port=8899 -Djetty.overrideWebXml=conf/readonly_cors.xml -Dbigdata.propertyFile=conf/blazegraph.properties -cp jars/blazegraph-jar-2.1.4.jar:jars/jetty-servlets-9.2.3.v20140905.jar com.bigdata.rdf.sail.webapp.StandaloneNanoSparqlServer
 }
 
 
 blazeg () {
-    load_data () {
-	cd $BG_HOME
-	BGVERSION=2.1.4
-	BGJAR="jars/blazegraph-jar-$BGVERSION.jar"
-	BG="java -server -XX:+UseG1GC -Xmx200g -Xms200g -cp $BGJAR com.bigdata.rdf.store.DataLoader"
-	#$BG -defaultGraph http://geneontology.org/rdf/ conf/blazegraph.properties rdf
 
-	$BG -verbose -defaultGraph http://m2montology.org/rdf/ conf/blazegraph.properties $1
+    run_loader () {
+	cd $BG_HOME
+	local graph=$1
+	local data_directory=$2
+	local namespace=""
+	if [ ! -z "$3" ]; then
+	    namespace="-namespace $3"
+	fi
+	$BG -verbose -defaultGraph $graph $namespace conf/blazegraph.properties $data_directory
+    }
+
+    load_data () {
+	run_loader http://m2m/ $1
     }
     monarch () {
 	fetch () {
@@ -78,6 +90,8 @@ blazeg () {
 		    -e "s,pubchem/resource/drugbank_drug,drugbank/resource/drugbank_drug,g" \
 		    -e "s/Not Available/Not_available/g" \
 		    -e "s/Not available/Not_available/g" \
+		    -e "s/GENE 7/GENE_7/g" \
+		    -e "s/POU 2/POU_2/g" \
 		    > $f.new
 		mv $f.new $f
 	    done
@@ -88,10 +102,45 @@ blazeg () {
 	$*
     }
 
+    pcrdf () {
+	PCRDF_ROOT=$DATA_ROOT/pubchemrdf
+	seen=$DATA_ROOT/loaded.txt
+	dirs="compound/general substance descriptor/compound descriptor/substance synonym inchikey measuregroup endpoint bioassay protein biosystem conserveddomain gene reference source concept"
+	function load () {
+	    for d in $dirs; do
+		load_dir=$PCRDF_ROOT/$d
+		echo loading $load_dir
+		for archive in $load_dir/*; do
+		    if [[ "$(echo $archive | grep -c 3d)" -eq 0 && "$(echo $archive | grep -c 2d)" -eq 0 ]]; then
+			echo  --archive: $archive
+			run_loader $DEFAULT_GRAPH $archive http://rdf.ncbi.nlm.nih.gov/pubchem/$d
+		    fi
+		done
+	    done
+	    cd $PCRDF_ROOT
+	}
+	$*
+    }
+
+
     load () {
-	load_data $DATA_ROOT
+	pcrdf load
+	load_data $DATA_ROOT/monarch
+	load_data $DATA_ROOT/chem2bio2rdf
+    }
+
+    set_ssd () {
+	export DATA_ROOT=/ssdscratch/scox/var
+	export BG_HOME=/ssdscratch/scox/dev/go-graphstore
+	echo set ssd settings...
+    }
+    ssd_load () {
+	set_ssd
+	load $*
     }
 
     $*
 }
+
+
 
