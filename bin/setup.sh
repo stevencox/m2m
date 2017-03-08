@@ -79,7 +79,8 @@ blazeg () {
 	    gunzip *.gz
 	}
 	fix () {
-	    for f in $C2B2R_DATA/*.n3; do
+#	    for f in $C2B2R_DATA/*.n3; do
+	    for f in $C2B2R_DATA/keg*.n3; do
 		echo $f
 		cat $f | sed \
 		    -e "s/HIV-1 PROTEASE/HIV-1_PROTEASE/g" \
@@ -92,6 +93,7 @@ blazeg () {
 		    -e "s/Not available/Not_available/g" \
 		    -e "s/GENE 7/GENE_7/g" \
 		    -e "s/POU 2/POU_2/g" \
+		    -e "s/ (C)/_(C)/g" \
 		    > $f.new
 		mv $f.new $f
 	    done
@@ -124,6 +126,7 @@ blazeg () {
 
 
     load () {
+	set_ssd
 	pcrdf load
 	load_data $DATA_ROOT/monarch
 	load_data $DATA_ROOT/chem2bio2rdf
