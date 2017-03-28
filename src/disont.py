@@ -61,3 +61,9 @@ for term_id in hierarchy_map:
     if disease.xref in disease_compound:
         compound = disease_compound [disease.xref]
         print ("disease item: {0} is treated by: {1}".format (term_id, compound))
+
+disease_matrix = defaultdict(dict)
+for disease_id in disease_compound:
+    for disease_id2 in disease_compound:
+        disease_matrix [disease_id][disease_id2] = 0
+print disease_matrix

@@ -16,7 +16,7 @@ export PATH=$JAVA_HOME/bin:$PATH
 
 export BGVERSION=2.1.4
 export BGJAR="jars/blazegraph-jar-$BGVERSION.jar"
-export BG="java -server -XX:+UseG1GC -Xmx200g -Xms200g -cp $BGJAR com.bigdata.rdf.store.DataLoader"
+export BG="java -server -XX:+UseG1GC -Xmx150g -Xms150g -cp $BGJAR com.bigdata.rdf.store.DataLoader"
 export DEFAULT_GRAPH=http://m2m/
 
 configure_m2m () {
@@ -27,7 +27,7 @@ configure_m2m () {
 
 blazegraph () {
     cd $BG_HOME
-    java -server -Xms200g -Xmx200g -Djetty.port=8899 -Djetty.overrideWebXml=conf/readonly_cors.xml -Dbigdata.propertyFile=conf/blazegraph.properties -cp jars/blazegraph-jar-2.1.4.jar:jars/jetty-servlets-9.2.3.v20140905.jar com.bigdata.rdf.sail.webapp.StandaloneNanoSparqlServer
+    java -server -Xms150g -Xmx150g -Djetty.port=8899 -Djetty.overrideWebXml=conf/readonly_cors.xml -Dbigdata.propertyFile=conf/blazegraph.properties -cp jars/blazegraph-jar-2.1.4.jar:jars/jetty-servlets-9.2.3.v20140905.jar com.bigdata.rdf.sail.webapp.StandaloneNanoSparqlServer
 }
 blazegraph_exec () {
     set_ssd 
@@ -79,8 +79,7 @@ blazeg () {
 	    gunzip *.gz
 	}
 	fix () {
-#	    for f in $C2B2R_DATA/*.n3; do
-	    for f in $C2B2R_DATA/keg*.n3; do
+	    for f in $C2B2R_DATA/*.n3; do
 		echo $f
 		cat $f | sed \
 		    -e "s/HIV-1 PROTEASE/HIV-1_PROTEASE/g" \
@@ -127,13 +126,13 @@ blazeg () {
 
     load () {
 	set_ssd
-	pcrdf load
+	#pcrdf load
 	load_data $DATA_ROOT/monarch
 	load_data $DATA_ROOT/chem2bio2rdf
     }
 
     set_ssd () {
-	export DATA_ROOT=/ssdscratch/scox/var
+	#export DATA_ROOT=/ssdscratch/scox/var
 	export BG_HOME=/ssdscratch/scox/dev/go-graphstore
 	echo set ssd settings...
     }
