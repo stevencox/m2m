@@ -1,3 +1,12 @@
+"""
+Fix N3 files with IRIs including spaces.
+
+Regardless of how one reads the specs, Blazegraph just wont load such files.
+
+And while one can read exceptions and manually fix things, there are limits to this approach.
+
+That limit for me was chem2bio2rdf's kegg.n3 which is full of spaces in IRIs.
+"""
 import rdflib
 import os
 import sys
@@ -29,7 +38,4 @@ with open (new_path, 'w') as stream:
         p = format_n3 (p)
         o = format_n3 (o)
         stream.write ("{0} {1} {2} .\n".format (s,p,o))
-        i = i + 1
 
-    #if i > 10:
-    #    break
