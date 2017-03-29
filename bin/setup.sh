@@ -79,7 +79,8 @@ blazeg () {
 	    gunzip *.gz
 	}
 	fix () {
-	    for f in $C2B2R_DATA/*.n3; do
+#	    for f in $C2B2R_DATA/*.n3; do
+	    for f in $C2B2R_DATA/kegg.n3; do
 		echo $f
 		cat $f | sed \
 		    -e "s/HIV-1 PROTEASE/HIV-1_PROTEASE/g" \
@@ -93,6 +94,23 @@ blazeg () {
 		    -e "s/GENE 7/GENE_7/g" \
 		    -e "s/POU 2/POU_2/g" \
 		    -e "s/ (C)/_(C)/g" \
+		    -e "s/ (E)/_(E)/g" \
+		    -e "s/ (I)/_(I)/g" \
+		    -e "s/ 31103/_31103/g" \
+		    -e "s/ 11103/_11103/g" \
+		    -e "s/8 367/8_367/g" \
+		    -e "s/57-6 71-00-1/57-6_71-00-1/g" \
+		    -e "s/2 464/2_464/g" \
+		    -e "s/0 501/0_501/g" \
+		    -e "s/9 202650/9_202650/g" \
+		    -e "s/1 484-42/1_484-42/g" \
+		    -e "s/39-0 66/39-0_66/g" \
+		    -e "s/0 1811/0_1811/g" \
+		    -e "s/3 150/3_150/g" \
+		    -e "s/3 71000/3_71000/g" \
+		    -e "s/6 552/6_552/g" \
+		    -e "s/5 5392/5_5392/g" \
+		    -e "s/1 69400/1_69400/g" \
 		    > $f.new
 		mv $f.new $f
 	    done
