@@ -3,7 +3,7 @@
 source /projects/stars/m2m/dev/m2m/bin/setup.sh
 
 start() {
-    blazeg set_ssd
+#    blazeg set_ssd
     blazegraph_exec
 }
 
